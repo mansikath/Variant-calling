@@ -1,0 +1,114 @@
+## Prerequisites
+
+- [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+- [SAMtools](http://www.htslib.org/)
+- [Minimap2](https://github.com/lh3/minimap2)
+- [GATK](https://gatk.broadinstitute.org/hc/en-us)
+
+
+## Pipeline Steps
+
+### 1. Download Sample Genome
+
+```
+wget https://www.ncbi.nlm.nih.gov/projects/faspftp/1000genomes/SRR062634_1.filt.fastq.gz
+wget https://www.ncbi.nlm.nih.gov/projects/faspftp/1000genomes/SRR062634_2.filt.fastq.gz
+```
+
+### 2. Quality Control
+
+```
+fastqc SRR062634_1.filt.fastq.gz SRR062634_2.filt.fastq.gz
+```
+
+### 3. Download Reference Genome
+
+```
+wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
+gunzip hg38.fa.gz
+```
+
+### 4. Index the Reference Genome
+
+```
+minimap2 -d hg38.mmi hg38.fa
+```
+
+### 5. Download Known Sites Files for BQSR
+
+```
+wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf
+wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf.idx
+```
+
+### 6. Align Reads to the Reference Genome
+
+```
+minimap2 -t 4 -ax sr hg38.fa SRR062634_1.filt.fastq.gz SRR062634_2.filt.fastq.gz > SRR062634.align_reads.sam
+```
+
+### 7. Convert SAM to BAM
+
+```
+samtools view -S -b SRR062634.align_reads.sam > SRR062634.align_reads.bam
+```
+
+### 8. Sort BAM File
+
+```
+samtools sort SRR062634.align_reads.bam -o SRR062634.sorted.bam
+```
+
+### 9. Mark Duplicates
+
+```
+gatk MarkDuplicates -I SRR062634.sorted.bam -O SRR062634.marked_duplicates.bam -M SRR062634.marked_dup_metrics.txt
+```
+
+### 10. Create Sequence Dictionary
+
+Create a sequence dictionary for the reference genome:
+```
+gatk CreateSequenceDictionary -R hg38.fa -O hg38.dict
+```
+
+### 11. Base Quality Score Recalibration (BQSR)
+
+Perform base quality score recalibration:
+```
+gatk BaseRecalibrator -R hg38.fa -I SRR062634.marked_duplicates.bam --known-sites Homo_sapiens_assembly38.dbsnp138.vcf -O SRR062634.recal_data.table
+```
+
+### 12. Apply BQSR
+
+Apply the recalibration to the BAM file:
+```
+gatk ApplyBQSR -R hg38.fa -I SRR062634.marked_duplicates.bam --bqsr-recal-file SRR062634.recal_data.table -O SRR062634.recalibrated.bam
+```
+
+### 13. Variant Calling
+
+Call variants using GATK HaplotypeCaller:
+```
+gatk HaplotypeCaller -R hg38.fa -I SRR062634.recalibrated.bam -O SRR062634.raw_variants.vcf
+```
+
+### 14. Variant Filtration
+
+Filter the variants based on quality:
+```
+gatk VariantFiltration -R hg38.fa -V SRR062634.raw_variants.vcf -O SRR062634.filtered_variants.vcf --filter-expression "QUAL < 30" --filter-name "LowQuality"
+```
+
+## Output Files
+
+- `SRR062634.align_reads.sam`: Aligned reads in SAM format
+- `SRR062634.align_reads.bam`: Aligned reads in BAM format
+- `SRR062634.sorted.bam`: Sorted BAM file
+- `SRR062634.marked_duplicates.bam`: BAM file with marked duplicates
+- `SRR062634.marked_dup_metrics.txt`: Metrics from marking duplicates
+- `hg38.dict`: Sequence dictionary for the reference genome
+- `SRR062634.recal_data.table`: Recalibration table
+- `SRR062634.recalibrated.bam`: BAM file after BQSR
+- `SRR062634.raw_variants.vcf`: Raw variant calls
+- `SRR062634.filtered_variants.vcf`: Filtered variant calls
