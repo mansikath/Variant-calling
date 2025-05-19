@@ -36,4 +36,19 @@ This project was developed as a learning exercise to understand the variant call
 
 ---
 
-This pipeline was created for learning and can be adapted for broader genomic analysis tasks.
+Copyright (c) 2024 Mansi Kathrotiya
+
+All rights reserved.
+
+Permission is hereby NOT granted to any person or organization to use, copy, modify, merge, publish, distribute, sublicense, or sell copies of the software or associated files without prior written consent from the author.
+
+Unauthorized use, reproduction, or distribution of any part of this repository is strictly prohibited and may result in legal action.
+
+If you wish to use any part of this project for educational, research, or commercial purposes, please contact:
+
+Mansi Kathrotiya  
+Email: mkathrotiya812@email.com  
+GitHub: https://github.com/mansikath  
+LinkedIn: https://linkedin.com/in/mansi  
+
+This license applies to all files and content within this repository.
